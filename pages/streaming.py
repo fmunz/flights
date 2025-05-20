@@ -190,25 +190,19 @@ def update_plane_data(n_intervals, selected_country):
 
 
 
-        # Apply country filter if selected -- no coming from the database
-        #if selected_country:
-        #    df = df[df['origin_country'] == selected_country]
-            print(f"[Streaming] Filtered to {len(df)} rows for country {selected_country}")
-            
+        old_no_planes = len(df) 
       
-
-        # Most recent time_position
         recent_time_position = df['time_position'].max()
         
-        # Filter out rows older than 2 minutes
-        df = df[df['time_position'] > (recent_time_position - timedelta(minutes=2))]
-        print(f"[Streaming] Filtered to {len(df)} rows after time filtering")
+        # Filter out rows older than x minutes
+        filter_minutes = config.get('filter_old_planes_minutes', 2)  # Default to 2 minutes if not configured
+        df = df[df['time_position'] > (recent_time_position - timedelta(minutes=filter_minutes))]
+        
+        print(f"[Streaming] Time filter removed {old_no_planes - len(df)} rows")
 
-        # Calculate query time
-        query_time = (datetime.now() - start_time).total_seconds()
         
 
-        # convert time_position to string before sinding 
+        # convert time_position to string before sending 
         # it to the frontend in this format 2025-05-19T08:20:52.000Z'
         df['time_position'] = df['time_position'].dt.strftime("%Y-%m-%dT%H:%M:%S.%fZ")
 
@@ -222,7 +216,6 @@ def update_plane_data(n_intervals, selected_country):
         # Create status messages - we'll still generate this but it won't be visible
         debug_msg = html.Div([
             html.P(f"Total planes: {len(planes_data)}"),
-            html.P(f"Query time: {query_time:.2f}s"),
             html.P(f"Update #{n_intervals}")
         ], style={"fontSize": "0.8rem", "color": "gray"})
         
