@@ -1,0 +1,12 @@
+dash==2.14.2
+dash-bootstrap-components==1.5.0
+pyyaml==6.0.1
+numpy==1.24.3
+pandas==2.0.3
+plotly==5.18.0
+databricks-sql-connector==2.9.3
+bokeh==3.3.4
+folium==0.15.0
+dash-deck==0.0.1
+pydeck==0.8.0
+h3==3.7.6 
