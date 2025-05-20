@@ -291,24 +291,7 @@
         planeSource.addFeature(arrowHead);
     }
 
-    function movePlane(plane, dtSeconds = 10) {
-        const speed = plane.velocity_ms || plane.velocity || plane.speed || 0;
-        const heading = plane.true_track || plane.heading || 0;
-        let lat = plane.latitude;
-        let lon = plane.longitude;
-        
-        if (!isValidPlaneData(plane)) return plane;
-        
-        const R = 6371000;
-        const headingRad = heading * Math.PI / 180;
-        const distance = speed * dtSeconds;
-        const dLat = (distance * Math.cos(headingRad)) / R;
-        const dLon = (distance * Math.sin(headingRad)) / (R * Math.cos(lat * Math.PI / 180));
-        const newLat = lat + dLat * 180 / Math.PI;
-        const newLon = lon + dLon * 180 / Math.PI;
-        
-        return { ...plane, latitude: newLat, longitude: newLon };
-    }
+ 
 
     function getDisplayPlaneData() {
         return currentPlaneData;
@@ -345,7 +328,7 @@
                 heading = 0;
             } else {
                 heading = heading % 360
-                //heading = ((heading % 360) + 360) % 360;
+ 
             }
             
             const callsign = plane.callsign || '';
@@ -360,10 +343,11 @@
             
             const info = 
                 `<b>Callsign:</b> ${callsign}<br>` +
-                (plane.country || plane.origin_country ? `<b>Country:</b> ${plane.country || plane.origin_country}<br>` : '') +
-                (plane.time_position ? `<b>Time:</b> ${plane.time_position}<br>` : '') +
-                `<b>Longitude:</b> ${plane.longitude.toFixed(5)}<br>` +
-                `<b>Latitude:</b> ${plane.latitude.toFixed(5)}<br>`;
+                (plane.country || plane.origin_country ? `<b>OriginCountry:</b> ${plane.country || plane.origin_country}<br>` : '') +
+                (plane.time_position ? `<b>Time Position:</b> ${plane.time_position}<br>` : '') +
+                (plane.altitude ? `<b>Altitude:</b> ${plane.altitude} m<br>` : '') 
+                //`<b>Longitude:</b> ${plane.longitude.toFixed(5)}<br>` +
+                //`<b>Latitude:</b> ${plane.latitude.toFixed(5)}<br>`;
             
             const [pointFeature] = createPlaneFeature(
                 plane.longitude, 
@@ -431,8 +415,9 @@
             html += `<b>Callsign:</b> ${plane.get('callsign')}<br>`;
             html += `<b>Heading:</b> ${plane.get('heading')}°<br>`;
             html += `<b>Speed:</b> ${plane.get('speed')} m/s<br>`;
-            html += `<b>Longitude:</b> ${lon.toFixed(5)}<br>`;
-            html += `<b>Latitude:</b> ${lat.toFixed(5)}<br>`;
+            html += `<b>Altitude:</b> ${plane.get('altitude')} m<br>`;
+            //html += `<b>Longitude:</b> ${lon.toFixed(5)}<br>`;
+            //html += `<b>Latitude:</b> ${lat.toFixed(5)}<br>`;
             html += `</div>`;
         });
         
