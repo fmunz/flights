@@ -6,7 +6,7 @@ from utils.database import *
 import traceback
 
 import json
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 # Register the page
 dash.register_page(__name__, path="/streaming")
@@ -114,7 +114,6 @@ def populate_country_options(pathname):
 
 @callback(
     [Output("streaming-plane-data", "data"),
-     Output("debug-info", "children"),
      Output("streaming-map-iframe", "style"),
      Output("streaming-country-selector", "style")],
     [Input("streaming-interval", "n_intervals"),
@@ -129,7 +128,11 @@ def update_plane_data(n_intervals, selected_country):
         
 
         df = get_latest_flights(selected_country)
-        print(df.head(3))
+        print(f"[Streaming DEBUG] DataFrame dtypes:\n{df.dtypes}")
+        print(f"[Streaming DEBUG] DataFrame columns: {df.columns.tolist()}")
+        print(f"[Streaming DEBUG] First row of data:")
+        print(df.iloc[0].to_dict())
+
         
         # Check if we got valid data
         if df is None or df.empty:
@@ -184,41 +187,34 @@ def update_plane_data(n_intervals, selected_country):
             }, None, iframe_style, country_selector_style
             
         # Ensure time_position is a datetime before filtering
-        if 'time_position' in df.columns:
-            df['time_position'] = pd.to_datetime(df['time_position'], utc=True, errors='coerce')
+        #if 'time_position' in df.columns:
+        #    df['time_position'] = pd.to_datetime(df['time_position'], utc=True, errors='coerce')
 
 
+        old_no_planes = len(df)       
+        recent_time_position = df['ts_time_position'].max()
+        recent_timestamp = df['ts_ingest_time'].max()
 
+        current_time = datetime.now(timezone.utc)
+        ui_time_diff = (current_time - recent_timestamp).total_seconds()
 
-        old_no_planes = len(df) 
-      
-        recent_time_position = df['time_position'].max()
-        
-        # Filter out rows older than x minutes
-        filter_minutes = config.get('filter_old_planes_minutes', 2)  # Default to 2 minutes if not configured
-        df = df[df['time_position'] > (recent_time_position - timedelta(minutes=filter_minutes))]
-        
-        print(f"[Streaming] Time filter removed {old_no_planes - len(df)} rows")
-
-        
+        # Filter out rows older than x minutes, 2 minutes is the default
+        filter_minutes = config.get('filter_old_planes_minutes', 2) 
+        df = df[df['ts_time_position'] > (recent_time_position - timedelta(minutes=filter_minutes))]        
+        print(f"[Streaming] Time filter removed {old_no_planes - len(df)} rows from {old_no_planes} rows")
 
         # convert time_position to string before sending 
-        # it to the frontend in this format 2025-05-19T08:20:52.000Z'
-        df['time_position'] = df['time_position'].dt.strftime("%Y-%m-%dT%H:%M:%S.%fZ")
+        df['time_position'] = df['ts_time_position'].dt.strftime("%Y-%m-%dT%H:%M:%S.%fZ")
 
         planes_data = df.to_dict("records")
-        current_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
-        # Debug: Print what is being sent to the frontend
-        print(f"Returning {len(planes_data)} planes ")
-        #print(planes_data[:3])
-        
-        # Create status messages - we'll still generate this but it won't be visible
-        debug_msg = html.Div([
-            html.P(f"Total planes: {len(planes_data)}"),
-            html.P(f"Update #{n_intervals}")
-        ], style={"fontSize": "0.8rem", "color": "gray"})
-        
+        ui_last_refresh = current_time.strftime('%Y-%m-%dT%H:%M:%S.%fZ')
+        ui_last_data = recent_timestamp.strftime('%Y-%m-%dT%H:%M:%S.%fZ')
+
+        print(f"[Streaming TIME DEBUG] Time difference: {ui_time_diff}, last refresh: {ui_last_refresh}, last data: {ui_last_data}")
+
+
+
         # Show the iframe
         iframe_style = {
             "width": "100%",
@@ -232,10 +228,12 @@ def update_plane_data(n_intervals, selected_country):
         country_selector_style = {"width": "100%"}
                 
         return {
-            "planes": planes_data,
-            "last_refresh": current_time,
+            "planes":        planes_data,
+            "last_refresh":  ui_last_refresh,
+            "last_data":     ui_last_data,
+            "last_time_diff": ui_time_diff,
             "status": "success"
-        }, debug_msg, iframe_style, country_selector_style
+        }, iframe_style, country_selector_style
         
     except Exception as e:
         print(f"[Streaming] Error in update_plane_data: {str(e)}")
@@ -324,7 +322,9 @@ clientside_callback(
                 {
                     type: 'plane_data',
                     planes: data.planes,
-                    last_refresh: data.last_refresh,
+                    ui_last_refresh: data.last_refresh,
+                    ui_last_data: data.last_data,
+                    ui_time_diff: data.last_time_diff,
                     status: data.status
                 },
                 '*'

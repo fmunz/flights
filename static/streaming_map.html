@@ -368,26 +368,11 @@
         updateDebugPanel();
         
         // Update stats in the refresh panel
-        document.getElementById('latest-data-time').textContent = latestTimestamp || 'Unknown';
+        document.getElementById('latest-data-time').textContent = ui_last_data || 'Unknown';
+        document.getElementById('time-delta').textContent = ui_time_diff || 'Unknown';
+        document.getElementById('latest-update-time').textContent = ui_last_refresh;
         document.getElementById('plane-count').textContent = validPlanesCount;
         
-        // Get current time in Zulu/UTC format
-        const now = new Date();
-        const zuluTime = now.toISOString().replace('T', ' ').substr(0, 19) + 'Z';
-        document.getElementById('latest-update-time').textContent = zuluTime;
-        
-        // Calculate delta between data time and update time if possible
-        if (latestTimestamp) {
-            try {
-                const dataTime = new Date(latestTimestamp);
-                const timeDelta = Math.floor((now - dataTime) / 1000); // in seconds
-                document.getElementById('time-delta').textContent = timeDelta + ' seconds';
-            } catch (e) {
-                document.getElementById('time-delta').textContent = 'N/A';
-            }
-        } else {
-            document.getElementById('time-delta').textContent = 'N/A';
-        }
     }
 
     function updateDebugPanel() {
@@ -474,6 +459,10 @@
         }
         
         if (event.data && event.data.type === 'plane_data') {
+            // Assign ui_ variables from event.data
+            window.ui_last_data = event.data.ui_last_data;
+            window.ui_time_diff = event.data.ui_time_diff;
+            window.ui_last_refresh = event.data.ui_last_refresh;
             console.log('Planes count:', event.data.planes.length);
             if (event.data.planes.length > 0) {
                 console.log('First plane data:', event.data.planes[0]);

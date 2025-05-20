@@ -86,6 +86,9 @@ WITH latest_timestamp AS (
   FROM {catalog}.{schema}.opensky_raw
 )
 SELECT 
+  to_utc_timestamp(timestamp, 'UTC') AS ts_ingest_time,
+  CAST(cf.time_position AS TIMESTAMP) AS ts_time_position,
+  CAST(cf.last_contact AS TIMESTAMP) AS ts_last_contact,
   date_format(to_utc_timestamp(timestamp, 'UTC'), "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'") AS ingest_time,
   -- date_format(timestamp, "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'") AS ingest_time,
   date_format(FROM_UNIXTIME(cf.time_position), "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'") AS time_position,
@@ -106,7 +109,16 @@ JOIN latest_timestamp lt
             with connection.cursor() as cursor:
                 cursor.execute(query)
                 result = cursor.fetchall()
+                # Print first row of raw SQL result
+                #print("Raw SQL result:", next(iter(result)))
+                # Print column types from cursor
+                #print("Cursor description:", [(col[0], col[1]) for col in cursor.description])
+
+                
                 df = pd.DataFrame(result, columns=[col[0] for col in cursor.description])
+                #print("Pandas dtypes:", df.dtypes)
+                #print("First row:", df.iloc[0])
+
                 return df
     except KeyError as e:
         raise RuntimeError(f"Missing required config value: {e.args[0]}")
