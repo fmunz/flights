@@ -43,6 +43,7 @@ def _query_table(table_name):
     print(f"[DEBUG] Using catalog: {catalog}, schema: {schema}")
     
     caller = get_caller_info()
+
     
     try:
         with sql.connect(
@@ -81,23 +82,21 @@ def get_latest_flights(selected_country):   # selected_country is a string
     where_clause = f"WHERE origin_country = '{selected_country}'" if selected_country else ""
 
     query = f"""
-WITH latest_timestamp AS (
-  SELECT MAX(timestamp) as max_ts
-  FROM {catalog}.{schema}.opensky_raw
-)
-SELECT 
-  to_utc_timestamp(timestamp, 'UTC') AS ts_ingest_time,
-  CAST(cf.time_position AS TIMESTAMP) AS ts_time_position,
-  CAST(cf.last_contact AS TIMESTAMP) AS ts_last_contact,
-  date_format(to_utc_timestamp(timestamp, 'UTC'), "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'") AS ingest_time,
-  -- date_format(timestamp, "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'") AS ingest_time,
-  date_format(FROM_UNIXTIME(cf.time_position), "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'") AS time_position,
-  date_format(FROM_UNIXTIME(cf.last_contact), "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'") AS last_contact,
-  cf.* EXCEPT (time_position, last_contact, timestamp)
-FROM {catalog}.{schema}.opensky_raw cf
-JOIN latest_timestamp lt 
-  ON cf.timestamp = lt.max_ts
-{where_clause}
+   
+        WITH latest_timestamp AS (
+        SELECT MAX(timestamp) as max_ts
+        FROM {catalog}.{schema}.opensky_raw
+        )
+        SELECT 
+        
+            to_utc_timestamp(timestamp, 'UTC') AS ingest_time,
+            to_utc_timestamp(FROM_UNIXTIME(time_position), 'UTC') AS time_position,
+            to_utc_timestamp(FROM_UNIXTIME(last_contact), 'UTC') AS last_contact,
+            cf.* EXCEPT (time_position, last_contact, timestamp)
+        FROM {catalog}.{schema}.opensky_raw cf
+        JOIN latest_timestamp lt 
+        ON cf.timestamp = lt.max_ts
+        {where_clause};
 """
 
     try:
@@ -116,6 +115,9 @@ JOIN latest_timestamp lt
 
                 
                 df = pd.DataFrame(result, columns=[col[0] for col in cursor.description])
+                df['ingest_time'] = df['ingest_time'].dt.tz_convert('UTC')
+                df['time_position'] = df['time_position'].dt.tz_convert('UTC')
+                df['last_contact'] = df['last_contact'].dt.tz_convert('UTC')
                 #print("Pandas dtypes:", df.dtypes)
                 #print("First row:", df.iloc[0])
 

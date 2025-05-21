@@ -128,10 +128,10 @@ def update_plane_data(n_intervals, selected_country):
         
 
         df = get_latest_flights(selected_country)
-        print(f"[Streaming DEBUG] DataFrame dtypes:\n{df.dtypes}")
-        print(f"[Streaming DEBUG] DataFrame columns: {df.columns.tolist()}")
-        print(f"[Streaming DEBUG] First row of data:")
-        print(df.iloc[0].to_dict())
+        #print(f"[Streaming DEBUG] DataFrame dtypes:\n{df.dtypes}")
+        #print(f"[Streaming DEBUG] DataFrame columns: {df.columns.tolist()}")
+        #print(f"[Streaming DEBUG] First row of data:")
+        #print(df.iloc[0].to_dict())
 
         
         # Check if we got valid data
@@ -192,26 +192,27 @@ def update_plane_data(n_intervals, selected_country):
 
 
         old_no_planes = len(df)       
-        recent_time_position = df['ts_time_position'].max()
-        recent_timestamp = df['ts_ingest_time'].max()
+        recent_time_position = df['time_position'].max()
+        recent_timestamp = df['ingest_time'].max()
 
         current_time = datetime.now(timezone.utc)
-        ui_time_diff = (current_time - recent_timestamp).total_seconds()
+        ui_time_diff = int((current_time - recent_timestamp).total_seconds())
 
         # Filter out rows older than x minutes, 2 minutes is the default
         filter_minutes = config.get('filter_old_planes_minutes', 2) 
-        df = df[df['ts_time_position'] > (recent_time_position - timedelta(minutes=filter_minutes))]        
+        df = df[df['time_position'] > (recent_time_position - timedelta(minutes=filter_minutes))]        
         print(f"[Streaming] Time filter removed {old_no_planes - len(df)} rows from {old_no_planes} rows")
 
         # convert time_position to string before sending 
-        df['time_position'] = df['ts_time_position'].dt.strftime("%Y-%m-%dT%H:%M:%S.%fZ")
+        df['time_position'] = df['time_position'].dt.strftime("%Y-%m-%dT%H:%M:%S.%fZ")
 
         planes_data = df.to_dict("records")
 
-        ui_last_refresh = current_time.strftime('%Y-%m-%dT%H:%M:%S.%fZ')
-        ui_last_data = recent_timestamp.strftime('%Y-%m-%dT%H:%M:%S.%fZ')
+        # avoid microseconds in the last refresh time
+        ui_last_refresh = current_time.strftime('%Y-%m-%dT%H:%M:%SZ')
+        ui_last_data = recent_timestamp.strftime('%Y-%m-%dT%H:%M:%SZ')
 
-        print(f"[Streaming TIME DEBUG] Time difference: {ui_time_diff}, last refresh: {ui_last_refresh}, last data: {ui_last_data}")
+        # print(f"[Streaming TIME DEBUG] Time difference: {ui_time_diff}, last refresh: {ui_last_refresh}, last data: {ui_last_data}")
 
 
 

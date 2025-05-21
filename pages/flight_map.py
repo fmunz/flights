@@ -6,8 +6,8 @@ from utils.database import query_cache, get_all_flights
 import traceback
 import plotly.express as px
 
-register_page(__name__, path="/flight-map")
-register_page(__name__, path="/map")  # Also register under /map for compatibility
+# register_page(__name__, path="/flight-map")
+# register_page(__name__, path="/map")  # Also register under /map for compatibility
 
 # Get country options directly from database cache
 countries_df = query_cache("countries")
@@ -29,26 +29,7 @@ except Exception as e:
 country_options = [{"label": "All Countries", "value": "ALL"}] + country_options
 
 def layout():
-    return dbc.Container([
-        dbc.Row([
-            dbc.Col([
-                html.H1("Flight Tracking Map", className="text-center mb-2"),
-                html.Div([
-                    html.Label("Select Country:"),
-                    dcc.Dropdown(
-                        id="country-selector",
-                        options=country_options,
-                        value="ALL",
-                        className="mb-3"
-                    ),
-                    html.Div(
-                        id="loading-map",
-                        children=dcc.Graph(id="flight-map", style={"height": "80vh"})
-                    )
-                ])
-            ])
-        ])
-    ], fluid=True)
+    return None
 
 @callback(
     [Output("flight-map", "figure"),

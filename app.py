@@ -21,7 +21,6 @@ app = dash.Dash(__name__,
 # Dictionary mapping paths to display names
 MENU_NAMES = {
     '/': 'Home',
-    '/flight-map': 'Static Map',
     '/map': 'Static Map',
     '/streaming': 'Live Map',
     '/on_ground': 'Landed Table',
